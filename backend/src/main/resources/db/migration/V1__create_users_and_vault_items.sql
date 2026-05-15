@@ -9,7 +9,7 @@ CREATE TABLE users (
 
 CREATE TABLE vault_items (
     id UUID PRIMARY KEY,
-    user_id NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     encrypted_name TEXT NOT NULL,
     encrypted_username TEXT,
     encrypted_password TEXT,
