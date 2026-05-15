@@ -37,20 +37,27 @@
 
 ## 🚀 Installation & Lancement
 
-### 1. Backend
+### 1. Déploiement avec Docker (Recommandé)
+Le projet est entièrement dockerisé pour un lancement rapide :
+```bash
+docker-compose up --build
+```
+*Le frontend sera accessible sur `http://localhost`, le backend sur `http://localhost:8080` et la base PostgreSQL sera gérée automatiquement.*
+
+### 2. Installation Manuelle
+
+#### Backend
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
-*L'API sera disponible sur `http://localhost:8080`.*
 
-### 2. Frontend
+#### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*L'application sera disponible sur `http://localhost:5173`.*
 
 ### 3. Extension Navigateur
 1. Allez dans le dossier `extension`.
