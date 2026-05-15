@@ -4,6 +4,7 @@ import { deriveKey, base64ToUint8Array } from "../crypto/crypto";
 
 interface AuthContextType {
     token: string | null;
+    salt: string | null;
     masterPassword: string | null;
     derivedKey: CryptoKey | null;
     isAuthenticated: boolean;
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+    const [salt, setSalt] = useState<string | null>(localStorage.getItem("kdfSalt"));
     const [masterPassword, setMasterPassword] = useState<string | null>(null);
     const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
 
@@ -25,7 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function setAuth(newToken: string, newMasterPassword: string, saltBase64: string) {
         localStorage.setItem("token", newToken);
+        localStorage.setItem("kdfSalt", saltBase64);
         setToken(newToken);
+        setSalt(saltBase64);
         
         await unlock(newMasterPassword, saltBase64);
     }
@@ -40,7 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     function logout() {
         localStorage.removeItem("token");
+        localStorage.removeItem("kdfSalt");
         setToken(null);
+        setSalt(null);
         setMasterPassword(null);
         setDerivedKey(null);
     }
@@ -48,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return (
         <AuthContext.Provider value={{ 
             token, 
+            salt,
             masterPassword, 
             derivedKey, 
             isAuthenticated, 

@@ -19,6 +19,7 @@ export default function VaultPage() {
 
     const [items, setItems] = useState<DecryptedItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState("");
 
     const [name, setName] = useState("");
@@ -38,9 +39,7 @@ export default function VaultPage() {
 
         try {
             setLoading(true);
-
             const response = await api.get<VaultItem[]>("/vault/items");
-
             const decrypted = await Promise.all(
                 response.data.map(async (item) => ({
                     id: item.id,
@@ -59,7 +58,6 @@ export default function VaultPage() {
                         : "",
                 }))
             );
-
             setItems(decrypted);
         } catch (err) {
             console.error("Failed to load items:", err);
@@ -73,6 +71,7 @@ export default function VaultPage() {
         if (!derivedKey) return;
 
         try {
+            setSaving(true);
             const encryptedName = await encryptText(name, derivedKey);
             const encryptedUsername = await encryptText(username, derivedKey);
             const encryptedPassword = await encryptText(password, derivedKey);
@@ -97,12 +96,20 @@ export default function VaultPage() {
             await loadItems();
         } catch (err) {
             console.error("Failed to create item:", err);
+            alert("Erreur lors du chiffrement ou de l'envoi. Assurez-vous d'être sur une connexion sécurisée.");
+        } finally {
+            setSaving(false);
         }
     }
 
     async function handleDelete(id: string) {
-        await api.delete(`/vault/items/${id}`);
-        await loadItems();
+        if (!confirm("Supprimer cet identifiant ?")) return;
+        try {
+            await api.delete(`/vault/items/${id}`);
+            await loadItems();
+        } catch (err) {
+            console.error(err);
+        }
     }
 
     const filteredItems = items.filter(item => 
@@ -181,8 +188,11 @@ export default function VaultPage() {
                             onChange={(e) => setNotes(e.target.value)}
                         />
 
-                        <button className="w-full bg-black text-white rounded-xl p-3 hover:bg-zinc-800 transition-colors">
-                            Ajouter au coffre
+                        <button 
+                            disabled={saving}
+                            className="w-full bg-black text-white rounded-xl p-3 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                        >
+                            {saving ? "Chiffrement..." : "Ajouter au coffre"}
                         </button>
                     </form>
 
