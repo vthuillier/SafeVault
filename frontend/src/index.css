@@ -3,31 +3,54 @@
 @theme {
     --color-primary: #6366f1;
     --color-primary-hover: #4f46e5;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-body {
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+@layer base {
+    body {
+        @apply bg-slate-50 text-slate-900 antialiased;
+    }
 }
 
-input, textarea {
-    @apply outline-none ring-offset-2 transition-all;
+@layer components {
+    .glass-card {
+        @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+    }
+
+    .input-field {
+        @apply w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none;
+    }
+
+    .btn-primary {
+        @apply bg-indigo-600 text-white font-semibold px-6 py-3 rounded-2xl hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-indigo-200;
+    }
+
+    .btn-secondary {
+        @apply bg-white text-slate-600 font-semibold px-6 py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-[0.98] shadow-sm;
+    }
 }
 
-input:focus, textarea:focus {
-    @apply ring-2 ring-indigo-500/20 border-indigo-500;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
 }
 
-.glass {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+::-webkit-scrollbar-track {
+    @apply bg-transparent;
 }
 
-.btn-primary {
-    @apply bg-indigo-600 text-white font-medium px-4 py-2 rounded-xl hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50;
+::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
 }
 
-.card {
-    @apply bg-white rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow;
+/* Animations */
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+.animate-shimmer {
+    background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite linear;
 }

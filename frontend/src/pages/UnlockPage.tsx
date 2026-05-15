@@ -2,6 +2,8 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { motion } from "framer-motion";
+import { Shield, Lock, ArrowRight, RefreshCw, AlertCircle, LogOut } from "lucide-react";
 
 export default function UnlockPage() {
     const { salt, unlock, logout } = useAuth();
@@ -24,7 +26,7 @@ export default function UnlockPage() {
             await unlock(password, salt);
             navigate("/vault");
         } catch (err) {
-            setError("Mot de passe maître incorrect ou erreur de déchiffrement.");
+            setError("Mot de passe maître incorrect.");
             console.error(err);
         } finally {
             setLoading(false);
@@ -33,54 +35,75 @@ export default function UnlockPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="max-w-md w-full space-y-8"
+            >
                 <div className="text-center">
-                    <div className="mx-auto h-16 w-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <div className="mx-auto h-20 w-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center shadow-inner mb-6">
+                        <Lock className="w-10 h-10" />
                     </div>
-                    <h2 className="text-3xl font-bold text-slate-900">Coffre Verrouillé</h2>
-                    <p className="mt-2 text-slate-500">
-                        Entrez votre mot de passe maître pour accéder à vos données.
+                    <h2 className="text-3xl font-bold text-slate-900">Session Verrouillée</h2>
+                    <p className="mt-2 text-slate-500 font-medium">
+                        Entrez votre mot de passe pour déchiffrer votre coffre.
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleUnlock}>
-                    <div>
-                        <input
-                            type="password"
-                            required
-                            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
-                            placeholder="Mot de passe maître"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-                    </div>
+                <div className="bg-white p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100">
+                    <form className="space-y-6" onSubmit={handleUnlock}>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-600 ml-1">Mot de passe maître</label>
+                            <input
+                                type="password"
+                                required
+                                autoFocus
+                                className="input-field text-center text-2xl tracking-[0.5em]"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </div>
 
-                    {error && (
-                        <p className="text-red-500 text-sm text-center bg-red-50 py-2 rounded-xl border border-red-100">
-                            {error}
-                        </p>
-                    )}
+                        {error && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-3 text-red-600 text-sm bg-red-50 p-4 rounded-2xl border border-red-100"
+                            >
+                                <AlertCircle className="w-5 h-5 shrink-0" />
+                                <p className="font-medium">{error}</p>
+                            </motion.div>
+                        )}
 
-                    <div className="flex flex-col gap-3">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-4 px-4 border border-transparent rounded-2xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/50 transition-all font-semibold disabled:opacity-50"
-                        >
-                            {loading ? "Déverrouillage..." : "Déverrouiller le coffre"}
-                        </button>
-                        
-                        <button
-                            type="button"
-                            onClick={logout}
-                            className="w-full py-4 px-4 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium"
-                        >
-                            Se déconnecter (oublier cette session)
-                        </button>
-                    </div>
-                </form>
-            </div>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="btn-primary w-full py-4 flex items-center justify-center gap-2 group"
+                            >
+                                {loading ? (
+                                    <RefreshCw className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <>
+                                        Déverrouiller
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                            
+                            <button
+                                type="button"
+                                onClick={logout}
+                                className="flex items-center justify-center gap-2 py-3 text-slate-400 hover:text-red-500 transition-colors text-sm font-bold"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Se déconnecter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </motion.div>
         </div>
     );
 }
