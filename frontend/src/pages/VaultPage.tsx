@@ -75,6 +75,7 @@ export default function VaultPage() {
     const [password, setPassword] = useState("");
     const [url, setUrl] = useState("");
     const [notes, setNotes] = useState("");
+    const [showFormPassword, setShowFormPassword] = useState(false);
 
     useEffect(() => {
         if (derivedKey) {
@@ -142,6 +143,7 @@ export default function VaultPage() {
             setPassword("");
             setUrl("");
             setNotes("");
+            setShowFormPassword(false);
 
             await loadItems();
         } catch (err) {
@@ -244,23 +246,35 @@ export default function VaultPage() {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-600 ml-1">Mot de passe maître</label>
+                                    <label className="text-sm font-semibold text-slate-600 ml-1">Mot de passe</label>
                                     <div className="relative">
                                         <Key className="absolute left-4 top-3.5 w-4 h-4 text-slate-400" />
                                         <input
-                                            className="input-field pl-11 pr-24"
+                                            className="input-field pl-11 pr-32"
                                             placeholder="••••••••"
-                                            type="password"
+                                            type={showFormPassword ? "text" : "password"}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={() => setPassword(generatePassword())}
-                                            className="absolute right-2 top-2 bottom-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all"
-                                        >
-                                            <RefreshCw className="w-3.5 h-3.5" />
-                                        </button>
+                                        <div className="absolute right-2 top-2 bottom-2 flex gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowFormPassword(!showFormPassword)}
+                                                className="px-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl transition-all"
+                                            >
+                                                {showFormPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPassword(generatePassword());
+                                                    setShowFormPassword(true);
+                                                }}
+                                                className="px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all"
+                                            >
+                                                <RefreshCw className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
