@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useState } from "react";
-import { deriveKey } from "../crypto/crypto";
+import { deriveKey, base64ToUint8Array } from "../crypto/crypto";
 
 interface AuthContextType {
     token: string | null;
@@ -14,10 +14,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function uint8ArrayToBase64(bytes: Uint8Array): string {
-    return btoa(String.fromCharCode(...bytes));
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
@@ -35,9 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     async function unlock(password: string, saltBase64: string) {
-        // Convert base64 salt to Uint8Array
-        const salt = Uint8Array.from(atob(saltBase64), c => c.charCodeAt(0));
-        
+        const salt = base64ToUint8Array(saltBase64);
         const key = await deriveKey(password, salt);
         
         setMasterPassword(password);

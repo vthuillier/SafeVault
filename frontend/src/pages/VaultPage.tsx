@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api/client";
-import { encryptText, decryptText } from "../crypto/crypto";
+import { encryptText, decryptText, generatePassword } from "../crypto/crypto";
 import type { VaultItem } from "../types/vault";
 
 type DecryptedItem = {
@@ -150,13 +150,22 @@ export default function VaultPage() {
                             onChange={(e) => setUsername(e.target.value)}
                         />
 
-                        <input
-                            className="w-full border rounded-xl p-3"
-                            placeholder="Mot de passe"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
+                        <div className="relative">
+                            <input
+                                className="w-full border rounded-xl p-3 pr-24"
+                                placeholder="Mot de passe"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setPassword(generatePassword())}
+                                className="absolute right-2 top-2 bottom-2 px-3 bg-zinc-100 rounded-lg text-xs font-medium hover:bg-zinc-200"
+                            >
+                                Générer
+                            </button>
+                        </div>
 
                         <input
                             className="w-full border rounded-xl p-3"
