@@ -20,7 +20,9 @@ import {
     RefreshCw,
     User as UserIcon,
     Globe,
-    FileText
+    FileText,
+    Pencil,
+    X
 } from "lucide-react";
 
 type DecryptedItem = {
@@ -66,10 +68,13 @@ export default function VaultPage() {
     const [items, setItems] = useState<DecryptedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [name, setName] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -115,7 +120,7 @@ export default function VaultPage() {
         }
     }
 
-    async function handleCreate(event: FormEvent) {
+    async function handleSubmit(event: FormEvent) {
         event.preventDefault();
         if (!derivedKey) return;
 
@@ -129,37 +134,63 @@ export default function VaultPage() {
             const encryptedUrl = await encryptText(url, derivedKey, iv);
             const encryptedNotes = await encryptText(notes, derivedKey, iv);
 
-            await api.post("/vault/items", {
+            const payload = {
                 encryptedName: encryptedName.ciphertext,
                 encryptedUsername: encryptedUsername.ciphertext,
                 encryptedPassword: encryptedPassword.ciphertext,
                 encryptedUrl: encryptedUrl.ciphertext,
                 encryptedNotes: encryptedNotes.ciphertext,
                 nonce: encryptedName.iv,
-            });
+            };
 
-            setName("");
-            setUsername("");
-            setPassword("");
-            setUrl("");
-            setNotes("");
-            setShowFormPassword(false);
+            if (editingId) {
+                await api.put(`/vault/items/${editingId}`, payload);
+            } else {
+                await api.post("/vault/items", payload);
+            }
 
+            cancelEdit();
             await loadItems();
         } catch (err) {
-            console.error("Failed to create item:", err);
+            console.error("Failed to save item:", err);
         } finally {
             setSaving(false);
         }
     }
 
+    function startEdit(item: DecryptedItem) {
+        console.log("Start editing item:", item.id);
+        setEditingId(item.id);
+        setName(item.name);
+        setUsername(item.username);
+        setPassword(item.password);
+        setUrl(item.url);
+        setNotes(item.notes);
+        setShowFormPassword(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        setName("");
+        setUsername("");
+        setPassword("");
+        setUrl("");
+        setNotes("");
+        setShowFormPassword(false);
+    }
+
     async function handleDelete(id: string) {
-        if (!confirm("Supprimer cet identifiant ?")) return;
         try {
+            setDeletingId(id);
             await api.delete(`/vault/items/${id}`);
             await loadItems();
+            setConfirmDeleteId(null);
         } catch (err) {
-            console.error(err);
+            console.error("Delete failed:", err);
+            alert("Erreur lors de la suppression.");
+        } finally {
+            setDeletingId(null);
         }
     }
 
@@ -208,19 +239,32 @@ export default function VaultPage() {
             <main className="max-w-7xl mx-auto px-4 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
-                    {/* Sidebar / Add Form */}
+                    {/* Sidebar / Form */}
                     <aside className="lg:col-span-4 space-y-6">
                         <motion.div 
+                            layout
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="glass-card rounded-3xl p-6"
+                            className={`glass-card rounded-3xl p-6 border-2 transition-all ${editingId ? 'border-indigo-400 shadow-indigo-100 shadow-2xl' : 'border-transparent'}`}
                         >
-                            <div className="flex items-center gap-2 mb-6">
-                                <Plus className="w-5 h-5 text-indigo-600" />
-                                <h2 className="text-lg font-bold text-slate-800">Ajouter un identifiant</h2>
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-2">
+                                    {editingId ? <Pencil className="w-5 h-5 text-indigo-600" /> : <Plus className="w-5 h-5 text-indigo-600" />}
+                                    <h2 className="text-lg font-bold text-slate-800">
+                                        {editingId ? "Modifier l'identifiant" : "Ajouter un identifiant"}
+                                    </h2>
+                                </div>
+                                {editingId && (
+                                    <button 
+                                        onClick={cancelEdit}
+                                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-red-500 transition-all"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                )}
                             </div>
 
-                            <form onSubmit={handleCreate} className="space-y-4">
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-semibold text-slate-600 ml-1">Nom</label>
                                     <input
@@ -306,14 +350,14 @@ export default function VaultPage() {
 
                                 <button 
                                     disabled={saving || !name}
-                                    className="btn-primary w-full mt-4 flex items-center justify-center gap-2"
+                                    className={`btn-primary w-full mt-4 flex items-center justify-center gap-2 transition-all ${editingId ? 'bg-indigo-700 shadow-indigo-200' : ''}`}
                                 >
                                     {saving ? (
                                         <RefreshCw className="w-5 h-5 animate-spin" />
                                     ) : (
                                         <>
-                                            <Plus className="w-5 h-5" />
-                                            Ajouter au coffre
+                                            {editingId ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                            {editingId ? "Mettre à jour" : "Ajouter au coffre"}
                                         </>
                                     )}
                                 </button>
@@ -370,7 +414,7 @@ export default function VaultPage() {
                                                 initial={{ opacity: 0, scale: 0.95 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 exit={{ opacity: 0, scale: 0.95 }}
-                                                className="bg-white border border-slate-200 rounded-3xl p-6 flex items-start gap-4 group hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all"
+                                                className={`bg-white border rounded-3xl p-6 flex items-start gap-4 group transition-all ${editingId === item.id ? 'border-indigo-500 ring-2 ring-indigo-500/10' : 'border-slate-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5'}`}
                                             >
                                                 <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors overflow-hidden border border-slate-100 shrink-0">
                                                     <Favicon url={item.url} />
@@ -395,13 +439,40 @@ export default function VaultPage() {
                                                             <p className="text-slate-500 text-sm font-medium truncate">{item.username}</p>
                                                         </div>
 
-                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                                            <button 
-                                                                onClick={() => handleDelete(item.id)}
-                                                                className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                                            >
-                                                                <Trash2 className="w-5 h-5" />
-                                                            </button>
+                                                        <div className="flex items-center gap-1 shrink-0 z-10">
+                                                            {confirmDeleteId === item.id ? (
+                                                                <div className="flex items-center gap-1 animate-in">
+                                                                    <button 
+                                                                        onClick={() => setConfirmDeleteId(null)}
+                                                                        className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-all"
+                                                                    >
+                                                                        Annuler
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => handleDelete(item.id)}
+                                                                        disabled={deletingId === item.id}
+                                                                        className="px-3 py-1.5 text-xs font-bold bg-red-500 text-white hover:bg-red-600 rounded-lg shadow-sm shadow-red-200 transition-all flex items-center gap-1.5"
+                                                                    >
+                                                                        {deletingId === item.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                                                        Sûr ?
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <button 
+                                                                        onClick={() => startEdit(item)}
+                                                                        className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                                                                    >
+                                                                        <Pencil className="w-5 h-5" />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => setConfirmDeleteId(item.id)}
+                                                                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                                                    >
+                                                                        <Trash2 className="w-5 h-5" />
+                                                                    </button>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </div>
 

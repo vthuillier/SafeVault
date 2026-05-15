@@ -75,7 +75,6 @@ public class VaultService {
     }
 
     public void delete(UUID id, User user) {
-
         VaultItem item = vaultItemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vault item not found"));
 
@@ -83,7 +82,7 @@ public class VaultService {
             throw new RuntimeException("Forbidden");
         }
 
-        vaultItemRepository.delete(item);
+        vaultItemRepository.deleteById(id);
     }
 
     private VaultItemResponse map(VaultItem item) {
