@@ -13,6 +13,7 @@ export default function RegisterPage() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -40,7 +41,8 @@ export default function RegisterPage() {
                 password, 
                 saltBase64, 
                 verification.ciphertext, 
-                verification.iv
+                verification.iv,
+                remember
             );
             navigate("/vault");
         } catch (err: any) {
@@ -98,10 +100,32 @@ export default function RegisterPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
                                 </div>
-                                <p className="text-[10px] text-slate-400 px-2 mt-1">
-                                    Ce mot de passe sert à générer votre clé de chiffrement. Ne le perdez pas.
-                                </p>
                             </div>
+
+                            <label className="flex items-start gap-3 cursor-pointer group py-2">
+                                <div className="relative flex items-center mt-1">
+                                    <input
+                                        type="checkbox"
+                                        className="peer sr-only"
+                                        checked={remember}
+                                        onChange={(e) => setRemember(e.target.checked)}
+                                    />
+                                    <div className="w-5 h-5 border-2 border-slate-200 rounded-lg peer-checked:bg-indigo-600 peer-checked:border-indigo-600 transition-all" />
+                                    <CheckCircle2 className="absolute w-3.5 h-3.5 text-white scale-0 peer-checked:scale-100 transition-transform left-0.5" />
+                                </div>
+                                <div className="flex-1">
+                                    <span className="text-sm font-bold text-slate-700">Se souvenir du mot de passe maître</span>
+                                    {remember && (
+                                        <motion.p 
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            className="text-[10px] text-amber-600 font-bold mt-1 leading-tight"
+                                        >
+                                            ⚠️ Risque de sécurité : votre mot de passe sera stocké sur cet ordinateur.
+                                        </motion.p>
+                                    )}
+                                </div>
+                            </label>
                         </div>
 
                         <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-2">

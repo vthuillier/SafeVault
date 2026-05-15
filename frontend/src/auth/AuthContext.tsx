@@ -14,10 +14,11 @@ interface AuthContextType {
         masterPassword: string, 
         salt: string, 
         encryptedVerification?: string, 
-        verificationNonce?: string
+        verificationNonce?: string,
+        remember?: boolean
     ) => Promise<void>;
     logout: () => void;
-    unlock: (masterPassword: string, salt: string) => Promise<void>;
+    unlock: (masterPassword: string, salt: string, remember?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,13 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isAuthenticated = !!token;
     const isLocked = isAuthenticated && !derivedKey;
 
-    // Load master password from sessionStorage on mount if exists
+    // Load master password from storage on mount
     useState(() => {
-        const savedPass = sessionStorage.getItem("mp");
+        const savedPass = localStorage.getItem("mp_p") || sessionStorage.getItem("mp");
         const savedSalt = localStorage.getItem("kdfSalt");
         if (savedPass && savedSalt) {
             unlock(savedPass, savedSalt).catch(() => {
                 sessionStorage.removeItem("mp");
+                localStorage.removeItem("mp_p");
             });
         }
     });
@@ -46,11 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         newMasterPassword: string, 
         saltBase64: string,
         encryptedVerification?: string,
-        verificationNonce?: string
+        verificationNonce?: string,
+        remember: boolean = false
     ) {
         localStorage.setItem("token", newToken);
         localStorage.setItem("kdfSalt", saltBase64);
-        sessionStorage.setItem("mp", newMasterPassword); // Survives refresh
+        
+        if (remember) {
+            localStorage.setItem("mp_p", newMasterPassword); // Persistent
+            sessionStorage.removeItem("mp");
+        } else {
+            sessionStorage.setItem("mp", newMasterPassword); // Session only
+            localStorage.removeItem("mp_p");
+        }
         
         if (encryptedVerification) localStorage.setItem("vEnc", encryptedVerification);
         if (verificationNonce) localStorage.setItem("vNonce", verificationNonce);
@@ -58,10 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(newToken);
         setSalt(saltBase64);
         
-        await unlock(newMasterPassword, saltBase64);
+        await unlock(newMasterPassword, saltBase64, remember);
     }
 
-    async function unlock(password: string, saltBase64: string) {
+    async function unlock(password: string, saltBase64: string, remember: boolean = false) {
         const saltBytes = base64ToUint8Array(saltBase64);
         const key = await deriveKey(password, saltBytes);
         
@@ -80,7 +90,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        sessionStorage.setItem("mp", password); // Store for refresh survival
+        if (remember) {
+            localStorage.setItem("mp_p", password);
+            sessionStorage.removeItem("mp");
+        } else {
+            // Only update sessionStorage if not already in localStorage
+            if (!localStorage.getItem("mp_p")) {
+                sessionStorage.setItem("mp", password);
+            }
+        }
+
         setDerivedKey(key);
     }
 
@@ -89,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("kdfSalt");
         localStorage.removeItem("vEnc");
         localStorage.removeItem("vNonce");
+        localStorage.removeItem("mp_p");
         sessionStorage.removeItem("mp");
         setToken(null);
         setSalt(null);
@@ -99,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <AuthContext.Provider value={{ 
             token, 
             salt,
-            masterPassword: null, // No longer stored
+            masterPassword: null,
             derivedKey, 
             isAuthenticated, 
             isLocked, 
