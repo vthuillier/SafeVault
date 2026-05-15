@@ -30,6 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isAuthenticated = !!token;
     const isLocked = isAuthenticated && !derivedKey;
 
+    // Load master password from sessionStorage on mount if exists
+    useState(() => {
+        const savedPass = sessionStorage.getItem("mp");
+        const savedSalt = localStorage.getItem("kdfSalt");
+        if (savedPass && savedSalt) {
+            unlock(savedPass, savedSalt).catch(() => {
+                sessionStorage.removeItem("mp");
+            });
+        }
+    });
+
     async function setAuth(
         newToken: string, 
         newMasterPassword: string, 
@@ -39,6 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ) {
         localStorage.setItem("token", newToken);
         localStorage.setItem("kdfSalt", saltBase64);
+        sessionStorage.setItem("mp", newMasterPassword); // Survives refresh
+        
         if (encryptedVerification) localStorage.setItem("vEnc", encryptedVerification);
         if (verificationNonce) localStorage.setItem("vNonce", verificationNonce);
         
@@ -67,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
         
+        sessionStorage.setItem("mp", password); // Store for refresh survival
         setDerivedKey(key);
     }
 
@@ -75,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("kdfSalt");
         localStorage.removeItem("vEnc");
         localStorage.removeItem("vNonce");
+        sessionStorage.removeItem("mp");
         setToken(null);
         setSalt(null);
         setDerivedKey(null);
