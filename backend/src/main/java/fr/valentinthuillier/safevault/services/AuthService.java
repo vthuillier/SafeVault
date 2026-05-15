@@ -29,7 +29,7 @@ public class AuthService {
                 .id(UUID.randomUUID())
                 .email(registerRequest.email())
                 .passwordHash(passwordEncoder.encode(registerRequest.password()))
-                .kdfSalt("TEMPORAIRE")
+                .kdfSalt(registerRequest.kdfSalt())
                 .kdfAlgorithm("Argon2id")
                 .build();
 
@@ -37,7 +37,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getId());
 
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getKdfSalt());
 
     }
 
@@ -57,7 +57,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getId());
 
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getKdfSalt());
 
     }
 

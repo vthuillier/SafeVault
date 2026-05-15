@@ -10,7 +10,10 @@ public record RegisterRequest(
         String email,
 
         @NotBlank
-        String password
+        String password,
+
+        @NotBlank
+        String kdfSalt
 
 ) {
 }
