@@ -32,6 +32,34 @@ type DecryptedItem = {
     notes: string;
 };
 
+const Favicon = ({ url }: { url: string }) => {
+    const [error, setError] = useState(false);
+    
+    const getFaviconUrl = (u: string) => {
+        try {
+            const domain = new URL(u).hostname;
+            return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+        } catch {
+            return null;
+        }
+    };
+
+    const favicon = getFaviconUrl(url);
+
+    if (error || !favicon) {
+        return <Globe className="w-6 h-6 text-slate-400 group-hover:text-indigo-500 transition-colors" />;
+    }
+
+    return (
+        <img 
+            src={favicon} 
+            alt="" 
+            className="w-8 h-8 object-contain"
+            onError={() => setError(true)}
+        />
+    );
+};
+
 export default function VaultPage() {
     const { derivedKey, logout } = useAuth();
 
@@ -216,7 +244,7 @@ export default function VaultPage() {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-600 ml-1">Mot de passe</label>
+                                    <label className="text-sm font-semibold text-slate-600 ml-1">Mot de passe maître</label>
                                     <div className="relative">
                                         <Key className="absolute left-4 top-3.5 w-4 h-4 text-slate-400" />
                                         <input
@@ -330,30 +358,30 @@ export default function VaultPage() {
                                                 exit={{ opacity: 0, scale: 0.95 }}
                                                 className="bg-white border border-slate-200 rounded-3xl p-6 flex items-start gap-4 group hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all"
                                             >
-                                                <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-                                                    <Globe className="w-6 h-6 text-slate-400 group-hover:text-indigo-500" />
+                                                <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors overflow-hidden border border-slate-100 shrink-0">
+                                                    <Favicon url={item.url} />
                                                 </div>
 
                                                 <div className="flex-1 min-w-0 space-y-3">
                                                     <div className="flex items-start justify-between">
-                                                        <div>
-                                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                                                {item.name}
+                                                        <div className="min-w-0">
+                                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 truncate">
+                                                                <span className="truncate">{item.name}</span>
                                                                 {item.url && (
                                                                     <a 
                                                                         href={item.url} 
                                                                         target="_blank" 
                                                                         rel="noopener noreferrer"
-                                                                        className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-all"
+                                                                        className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shrink-0"
                                                                     >
                                                                         <ExternalLink className="w-4 h-4" />
                                                                     </a>
                                                                 )}
                                                             </h3>
-                                                            <p className="text-slate-500 text-sm font-medium">{item.username}</p>
+                                                            <p className="text-slate-500 text-sm font-medium truncate">{item.username}</p>
                                                         </div>
 
-                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                                             <button 
                                                                 onClick={() => handleDelete(item.id)}
                                                                 className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
@@ -365,21 +393,21 @@ export default function VaultPage() {
 
                                                     <div className="flex flex-wrap items-center gap-3">
                                                         <div className="flex-1 min-w-[200px] bg-slate-50 rounded-2xl border border-slate-100 p-1.5 flex items-center gap-2">
-                                                            <div className="flex-1 px-3 py-1.5">
-                                                                <code className="text-sm font-mono font-bold text-indigo-900">
+                                                            <div className="flex-1 px-3 py-1.5 overflow-hidden">
+                                                                <code className="text-sm font-mono font-bold text-indigo-900 truncate block">
                                                                     {visiblePasswords[item.id] ? item.password : "••••••••••••••••"}
                                                                 </code>
                                                             </div>
                                                             <button 
                                                                 onClick={() => togglePasswordVisibility(item.id)}
-                                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all"
+                                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shrink-0"
                                                             >
                                                                 {visiblePasswords[item.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                                             </button>
-                                                            <div className="w-px h-6 bg-slate-200 mx-1" />
+                                                            <div className="w-px h-6 bg-slate-200 mx-1 shrink-0" />
                                                             <button 
                                                                 onClick={() => handleCopy(item.password, item.id)}
-                                                                className={`p-2 flex items-center gap-2 rounded-xl transition-all ${
+                                                                className={`p-2 flex items-center gap-2 rounded-xl transition-all shrink-0 ${
                                                                     copiedId === item.id 
                                                                         ? "bg-green-500 text-white" 
                                                                         : "text-slate-400 hover:text-indigo-600 hover:bg-white"
