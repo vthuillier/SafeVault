@@ -64,16 +64,17 @@ export async function deriveKey(
 
 export async function encryptText(
     text: string,
-    key: CryptoKey
+    key: CryptoKey,
+    iv?: Uint8Array
 ) {
     const subtle = getSubtleCrypto();
     const encoder = new TextEncoder();
-    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const actualIv = iv || crypto.getRandomValues(new Uint8Array(12));
 
     const encrypted = await subtle.encrypt(
         {
             name: "AES-GCM",
-            iv: iv as any,
+            iv: actualIv as any,
         },
         key,
         encoder.encode(text)
@@ -81,7 +82,8 @@ export async function encryptText(
 
     return {
         ciphertext: uint8ArrayToBase64(new Uint8Array(encrypted)),
-        iv: uint8ArrayToBase64(iv),
+        iv: uint8ArrayToBase64(actualIv),
+        ivRaw: actualIv
     };
 }
 

@@ -31,20 +31,28 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(registerRequest.password()))
                 .kdfSalt(registerRequest.kdfSalt())
                 .kdfAlgorithm("Argon2id")
+                .encryptedVerification(registerRequest.encryptedVerification())
+                .verificationNonce(registerRequest.verificationNonce())
                 .build();
 
         userRepository.save(user);
 
         String token = jwtService.generateToken(user.getId());
 
-        return new AuthResponse(token, user.getKdfSalt());
+        return new AuthResponse(
+                token, 
+                user.getKdfSalt(),
+                user.getEncryptedVerification(),
+                user.getVerificationNonce()
+        );
 
     }
 
     public AuthResponse login(LoginRequest loginRequest) {
 
         User user = userRepository.findByEmail(loginRequest.email())
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         boolean matches = passwordEncoder.matches(
                 loginRequest.password(),
@@ -52,12 +60,18 @@ public class AuthService {
         );
 
         if (!matches) {
-            throw new RuntimeException("Invalid credentials");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
         String token = jwtService.generateToken(user.getId());
 
-        return new AuthResponse(token, user.getKdfSalt());
+        return new AuthResponse(
+                token, 
+                user.getKdfSalt(),
+                user.getEncryptedVerification(),
+                user.getVerificationNonce()
+        );
 
     }
 

@@ -30,6 +30,12 @@ public class User {
     @Column(name = "kdf_algorithm", nullable = false, columnDefinition = "TEXT")
     private String kdfAlgorithm;
 
+    @Column(name = "encrypted_verification", columnDefinition = "TEXT")
+    private String encryptedVerification;
+
+    @Column(name = "verification_nonce", columnDefinition = "TEXT")
+    private String verificationNonce;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

@@ -13,7 +13,9 @@ public record RegisterRequest(
         String password,
 
         @NotBlank
-        String kdfSalt
+        String kdfSalt,
 
+        String encryptedVerification,
+        String verificationNonce
 ) {
 }

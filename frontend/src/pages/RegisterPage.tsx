@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { generateSalt, uint8ArrayToBase64 } from "../crypto/crypto";
+import { generateSalt, uint8ArrayToBase64, deriveKey, encryptText } from "../crypto/crypto";
 import { motion } from "framer-motion";
 import { Shield, Mail, Lock, UserPlus, ArrowRight, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -24,14 +24,24 @@ export default function RegisterPage() {
             
             const salt = generateSalt();
             const saltBase64 = uint8ArrayToBase64(salt);
+            const derivedKey = await deriveKey(password, salt);
+            const verification = await encryptText("VERIFIED", derivedKey);
 
             const response = await api.post("/auth/register", {
                 email,
                 password,
-                kdfSalt: saltBase64
+                kdfSalt: saltBase64,
+                encryptedVerification: verification.ciphertext,
+                verificationNonce: verification.iv
             });
 
-            await setAuth(response.data.token, password, saltBase64);
+            await setAuth(
+                response.data.token, 
+                password, 
+                saltBase64, 
+                verification.ciphertext, 
+                verification.iv
+            );
             navigate("/vault");
         } catch (err: any) {
             setError(err.response?.data?.message || "Erreur lors de la création du compte.");

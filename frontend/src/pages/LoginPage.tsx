@@ -21,7 +21,13 @@ export default function LoginPage() {
             setLoading(true);
             setError("");
             const response = await api.post("/auth/login", { email, password });
-            await setAuth(response.data.token, password, response.data.kdfSalt);
+            await setAuth(
+                response.data.token, 
+                password, 
+                response.data.kdfSalt,
+                response.data.encryptedVerification,
+                response.data.verificationNonce
+            );
             navigate("/vault");
         } catch (err: any) {
             setError(err.response?.data?.message || "Identifiants incorrects ou erreur serveur.");

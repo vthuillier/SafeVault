@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { motion } from "framer-motion";
-import { Shield, Lock, ArrowRight, RefreshCw, AlertCircle, LogOut } from "lucide-react";
+import { Lock, ArrowRight, RefreshCw, AlertCircle, LogOut } from "lucide-react";
 
 export default function UnlockPage() {
     const { salt, unlock, logout } = useAuth();
