@@ -20,8 +20,7 @@ public class VaultService {
 
     public VaultItemResponse create(
             User user,
-            CreateVaultItemRequest request
-    ) {
+            CreateVaultItemRequest request) {
 
         VaultItem item = VaultItem.builder()
                 .user(user)
@@ -52,8 +51,7 @@ public class VaultService {
     public VaultItemResponse update(
             UUID id,
             User user,
-            UpdateVaultItemRequest request
-    ) {
+            UpdateVaultItemRequest request) {
 
         VaultItem item = vaultItemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vault item not found"));
@@ -89,6 +87,7 @@ public class VaultService {
 
         return new VaultItemResponse(
                 item.getId(),
+                item.getFolder().getId(),
                 item.getEncryptedName(),
                 item.getEncryptedUsername(),
                 item.getEncryptedPassword(),
@@ -96,8 +95,7 @@ public class VaultService {
                 item.getEncryptedNotes(),
                 item.getNonce(),
                 item.getCreatedAt(),
-                item.getUpdatedAt()
-        );
+                item.getUpdatedAt());
     }
 
 }
