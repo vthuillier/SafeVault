@@ -6,8 +6,11 @@ import fr.valentinthuillier.safevault.dto.RegisterRequest;
 import fr.valentinthuillier.safevault.models.User;
 import fr.valentinthuillier.safevault.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -23,7 +26,7 @@ public class AuthService {
         public AuthResponse register(RegisterRequest registerRequest) {
 
                 if (userRepository.existsByEmail(registerRequest.email())) {
-                        throw new RuntimeException("Email already exists");
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
                 }
 
                 User user = User.builder()
@@ -53,17 +56,17 @@ public class AuthService {
         public AuthResponse login(LoginRequest loginRequest) {
 
                 User user = userRepository.findByEmail(loginRequest.email())
-                                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
-                                                 org.springframework.http.HttpStatus.UNAUTHORIZED,
-                                                 "Invalid credentials"));
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.UNAUTHORIZED,
+                                                "Invalid credentials"));
 
                 boolean matches = passwordEncoder.matches(
                                 loginRequest.password(),
                                 user.getPasswordHash());
 
                 if (!matches) {
-                        throw new org.springframework.web.server.ResponseStatusException(
-                                        org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid credentials");
+                        throw new ResponseStatusException(
+                                        HttpStatus.UNAUTHORIZED, "Invalid credentials");
                 }
 
                 if (user.isTotpEnabled()) {
@@ -79,8 +82,8 @@ public class AuthService {
 
                         boolean isValid = totpService.verifyCode(user.getTotpSecret(), loginRequest.code());
                         if (!isValid) {
-                                throw new org.springframework.web.server.ResponseStatusException(
-                                                org.springframework.http.HttpStatus.UNAUTHORIZED, "Code MFA invalide");
+                                throw new ResponseStatusException(
+                                                HttpStatus.UNAUTHORIZED, "Code MFA invalide");
                         }
                 }
 

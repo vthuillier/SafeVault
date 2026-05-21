@@ -4,6 +4,7 @@ import { checkPasswordPwned } from "./hibp";
 
 type VaultItem = {
   id: string;
+  folderId?: string | null;
   encryptedName: string;
   encryptedUsername?: string;
   encryptedPassword?: string;
@@ -18,10 +19,25 @@ type DecryptedItem = VaultItem & {
   password: string;
 };
 
+type Folder = {
+  id: string;
+  encryptedName: string;
+  nonce: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type DecryptedFolder = {
+  id: string;
+  name: string;
+};
+
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 // Global State
 let items: VaultItem[] = [];
+let folders: DecryptedFolder[] = [];
+let selectedFolderId: string = "all";
 let derivedKey: CryptoKey | null = null;
 let currentDomain: string = "";
 
@@ -137,12 +153,35 @@ async function renderSetup() {
 
 async function loadVault(apiUrl: string, token: string) {
   try {
-    const response = await fetch(`${apiUrl}/vault/items`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) throw new Error("Session expirée");
+    const [itemsResponse, foldersResponse] = await Promise.all([
+      fetch(`${apiUrl}/vault/items`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${apiUrl}/folders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    ]);
+
+    if (!itemsResponse.ok || !foldersResponse.ok) throw new Error("Session expirée");
     
-    items = await response.json();
+    items = await itemsResponse.json();
+    
+    const foldersData: Folder[] = await foldersResponse.json();
+    if (derivedKey) {
+      folders = (await Promise.all(
+        foldersData.map(async (f) => {
+          try {
+            return {
+              id: f.id,
+              name: await decryptText(f.encryptedName, f.nonce, derivedKey!),
+            } as DecryptedFolder;
+          } catch {
+            return null;
+          }
+        })
+      )).filter((f): f is DecryptedFolder => f !== null);
+    }
+
     renderVault();
   } catch (err) {
     renderSetup();
@@ -150,6 +189,8 @@ async function loadVault(apiUrl: string, token: string) {
 }
 
 async function renderVault() {
+  const folderOptions = folders.map(f => `<option value="${f.id}">📁 ${f.name}</option>`).join("");
+
   app.innerHTML = `
     <div class="container animate-in vault-mode">
       <div class="header-compact">
@@ -160,7 +201,15 @@ async function renderVault() {
         <button id="logout" class="btn-icon">🚪</button>
       </div>
       
-      <div id="vault-items" class="items-list">
+      <div class="filter-box">
+        <select id="folder-filter">
+          <option value="all">📂 Tous les éléments</option>
+          <option value="none">📂 Hors dossier</option>
+          ${folderOptions}
+        </select>
+      </div>
+      
+      <div id="vault-items" class="items-list" style="margin-top: 10px;">
         <div class="loading-state">Déchiffrement...</div>
       </div>
     </div>
@@ -174,6 +223,12 @@ async function renderVault() {
 
   const searchInput = document.querySelector<HTMLInputElement>("#search")!;
   searchInput.addEventListener("input", () => updateItemsList(searchInput.value));
+
+  const folderFilter = document.querySelector<HTMLSelectElement>("#folder-filter")!;
+  folderFilter.addEventListener("change", () => {
+    selectedFolderId = folderFilter.value;
+    updateItemsList(searchInput.value);
+  });
 
   updateItemsList("");
 }
@@ -196,7 +251,12 @@ async function updateItemsList(query: string) {
         return null;
       }
     })
-  )).filter((i): i is DecryptedItem => i !== null);
+  )).filter((i): i is DecryptedItem => i !== null)
+    .filter(i => {
+      if (selectedFolderId === "all") return true;
+      if (selectedFolderId === "none") return !i.folderId;
+      return i.folderId === selectedFolderId;
+    });
 
   const suggestions = decryptedItems.filter(i => 
     currentDomain && i.url.toLowerCase().includes(currentDomain.toLowerCase())

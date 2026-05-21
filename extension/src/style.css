@@ -323,3 +323,22 @@ input:focus {
   gap: 4px;
   margin-top: 4px;
 }
+
+select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  background-color: white;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+  transition: all 0.2s;
+}
+
+select:focus {
+  border-color: var(--primary);
+}
