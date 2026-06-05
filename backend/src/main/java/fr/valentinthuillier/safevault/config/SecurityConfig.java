@@ -48,8 +48,10 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/me").authenticated()
                         .requestMatchers("/api/user/**").authenticated()
+                        .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/vault/**").authenticated()
                         .requestMatchers("/api/folders/**").authenticated()
+                        .requestMatchers("/api/groups/**").authenticated()
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(
