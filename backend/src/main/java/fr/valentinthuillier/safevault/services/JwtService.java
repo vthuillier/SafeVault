@@ -1,6 +1,7 @@
 package fr.valentinthuillier.safevault.services;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +36,7 @@ public class JwtService {
                 .compact();
     }
 
-    public UUID extractUserId(String token) {
+    public UUID extractUserId(String token) throws ExpiredJwtException {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()

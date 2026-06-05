@@ -3,6 +3,7 @@ package fr.valentinthuillier.safevault.filters;
 import fr.valentinthuillier.safevault.models.User;
 import fr.valentinthuillier.safevault.repositories.UserRepository;
 import fr.valentinthuillier.safevault.services.JwtService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,45 +24,46 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
-    private final UserRepository userRepository;
+        private final JwtService jwtService;
+        private final UserRepository userRepository;
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+        @Override
+        protected void doFilterInternal(
+                        HttpServletRequest request,
+                        HttpServletResponse response,
+                        FilterChain filterChain) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+                String authHeader = request.getHeader("Authorization");
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                        filterChain.doFilter(request, response);
+                        return;
+                }
+
+                User user = null;
+
+                String token = authHeader.replace("Bearer ", "");
+                try {
+                        UUID userId = jwtService.extractUserId(token);
+                        user = userRepository.findById(userId)
+                                        .orElse(null);
+                } catch (ExpiredJwtException e) {
+                        System.out.println("Token expired!");
+                }
+
+                if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                        user,
+                                        null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER")));
+
+                        authentication.setDetails(
+                                        new WebAuthenticationDetailsSource().buildDetails(request));
+
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+
+                filterChain.doFilter(request, response);
+
         }
-
-        String token = authHeader.replace("Bearer ", "");
-        UUID userId = jwtService.extractUserId(token);
-
-        User user = userRepository.findById(userId)
-                .orElse(null);
-
-        if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            user,
-                            null,
-                            List.of(new SimpleGrantedAuthority("ROLE_USER"))
-                    );
-
-            authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            );
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-
-        filterChain.doFilter(request, response);
-
-    }
 }
