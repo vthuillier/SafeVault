@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useState } from "react";
 import { deriveKey, base64ToUint8Array, decryptText } from "../crypto/crypto";
+import {api} from "../api/client.ts";
 
 interface AuthContextType {
     token: string | null;
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isLocked = isAuthenticated && !derivedKey;
 
     // Load master password from storage on mount
-    useState(() => {
+    useState(async () => {
         const savedPass = localStorage.getItem("mp_p") || sessionStorage.getItem("mp");
         const savedSalt = localStorage.getItem("kdfSalt");
         if (savedPass && savedSalt) {
@@ -47,6 +48,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 sessionStorage.removeItem("mp");
                 localStorage.removeItem("mp_p");
             });
+        }
+
+        // Check if token is currently valid
+        try {
+            await api.get("/me");
+        } catch (e) {
+            console.error(e);
+            localStorage.clear();
+            setToken(null);
         }
     });
 
@@ -101,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     throw new Error("Mot de passe maître incorrect.");
                 }
             } catch (err) {
-                throw new Error("Mot de passe maître incorrect.");
+                throw new Error("Mot de passe maître incorrect.", { cause: err });
             }
         }
         
@@ -172,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {
