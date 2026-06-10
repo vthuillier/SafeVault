@@ -51,13 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Check if token is currently valid
-        try {
-            await api.get("/me");
-        } catch (e) {
-            console.error(e);
+        await api.get("/me").catch(() => {
             localStorage.clear();
             setToken(null);
-        }
+        });
     });
 
     async function setAuth(
