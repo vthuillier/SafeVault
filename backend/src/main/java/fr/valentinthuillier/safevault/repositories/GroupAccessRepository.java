@@ -1,6 +1,5 @@
 package fr.valentinthuillier.safevault.repositories;
 
-import fr.valentinthuillier.safevault.models.Group;
 import fr.valentinthuillier.safevault.models.GroupAccess;
 import fr.valentinthuillier.safevault.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;

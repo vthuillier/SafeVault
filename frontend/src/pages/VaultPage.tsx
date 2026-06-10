@@ -376,10 +376,70 @@ export default function VaultPage() {
         if (!manageGroupId) return;
         if (!confirm("Voulez-vous vraiment retirer ce membre du groupe ?")) return;
         try {
-            await api.delete(`/groups/${manageGroupId}/members/${userId}`);
+            // 1. Get raw group key (AES)
+            const groupKey = groupCryptoKeys[manageGroupId];
+            if (!groupKey) {
+                throw new Error("Clé de groupe introuvable en mémoire.");
+            }
+
+            // 2. Identify remaining members
+            const remainingMembers = groupMembers.filter(m => m.userId !== userId);
+
+            // 3. Generate new group key (AES)
+            const newRawKeyBase64 = await generateGroupKey();
+            const newRawKeyBytes = base64ToUint8Array(newRawKeyBase64);
+
+            // 4. Encrypt new group key for each remaining member
+            const newGroupKeys: Record<string, string> = {};
+            for (const member of remainingMembers) {
+                if (member.publicKey) {
+                    newGroupKeys[member.userId] = await encryptWithPublicKey(member.publicKey, newRawKeyBytes);
+                } else {
+                    console.warn(`User ${member.email} does not have a public key. Skipping key rotation for them.`);
+                }
+            }
+
+            // 5. Decrypt and re-encrypt all group items
+            const groupItems = items.filter(item => item.groupId === manageGroupId);
+            const newCryptoKey = await importAesKey(newRawKeyBase64);
+            const reencryptedItems = [];
+
+            for (const item of groupItems) {
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const encName = await encryptText(item.name, newCryptoKey, iv);
+                const encUser = item.username ? await encryptText(item.username, newCryptoKey, iv) : { ciphertext: "", iv: "" };
+                const encPass = item.password ? await encryptText(item.password, newCryptoKey, iv) : { ciphertext: "", iv: "" };
+                const encUrl = item.url ? await encryptText(item.url, newCryptoKey, iv) : { ciphertext: "", iv: "" };
+                const encNotes = item.notes ? await encryptText(item.notes, newCryptoKey, iv) : { ciphertext: "", iv: "" };
+
+                reencryptedItems.push({
+                    id: item.id,
+                    encryptedName: encName.ciphertext,
+                    encryptedUsername: encUser.ciphertext || null,
+                    encryptedPassword: encPass.ciphertext || null,
+                    encryptedUrl: encUrl.ciphertext || null,
+                    encryptedNotes: encNotes.ciphertext || null,
+                    nonce: encName.iv
+                });
+            }
+
+            // 6. Send payload to remove user and rotate keys
+            await api.post(`/groups/${manageGroupId}/members/${userId}/remove`, {
+                newGroupKeys,
+                reencryptedItems
+            });
+
+            // 7. Update group key in local state
+            setGroupCryptoKeys(prev => ({
+                ...prev,
+                [manageGroupId]: newCryptoKey
+            }));
+
+            // 8. Reload members and items
             await loadMembers(manageGroupId);
+            await loadItems();
         } catch (err: any) {
-            alert(err.response?.data?.message || "Erreur lors du retrait du membre.");
+            alert(err.response?.data?.message || err.message || "Erreur lors du retrait du membre.");
         }
     }
 

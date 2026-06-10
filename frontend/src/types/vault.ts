@@ -48,4 +48,5 @@ export type GroupMember = {
     email: string;
     role: "ADMIN" | "MEMBER" | "VIEWER";
     encryptedGroupKey: string;
+    publicKey?: string | null;
 };

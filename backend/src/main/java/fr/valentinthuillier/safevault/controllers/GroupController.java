@@ -64,12 +64,13 @@ public class GroupController {
         groupService.updateMember(user, groupId, userId, request);
     }
 
-    @DeleteMapping("/{groupId}/members/{userId}")
+    @PostMapping("/{groupId}/members/{userId}/remove")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeMember(@AuthenticationPrincipal User user,
                              @PathVariable UUID groupId,
-                             @PathVariable UUID userId) {
-        groupService.removeMember(user, groupId, userId);
+                             @PathVariable UUID userId,
+                             @Valid @RequestBody RemoveMemberRequest request) {
+        groupService.removeMember(user, groupId, userId, request);
     }
 
 }

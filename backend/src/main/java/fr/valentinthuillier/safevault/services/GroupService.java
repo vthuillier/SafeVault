@@ -8,6 +8,7 @@ import fr.valentinthuillier.safevault.models.User;
 import fr.valentinthuillier.safevault.repositories.GroupAccessRepository;
 import fr.valentinthuillier.safevault.repositories.GroupRepository;
 import fr.valentinthuillier.safevault.repositories.UserRepository;
+import fr.valentinthuillier.safevault.repositories.VaultItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -24,6 +26,7 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final GroupAccessRepository groupAccessRepository;
     private final UserRepository userRepository;
+    private final VaultItemRepository vaultItemRepository;
 
     @Transactional
     public GroupResponse createGroup(User creator, CreateGroupRequest request) {
@@ -92,7 +95,8 @@ public class GroupService {
                         access.getUser().getId(),
                         access.getUser().getEmail(),
                         access.getRole(),
-                        access.getEncryptedGroupKey()
+                        access.getEncryptedGroupKey(),
+                        access.getUser().getPublicKey()
                 ))
                 .toList();
     }
@@ -149,7 +153,7 @@ public class GroupService {
     }
 
     @Transactional
-    public void removeMember(User currentUser, UUID groupId, UUID targetUserId) {
+    public void removeMember(User currentUser, UUID groupId, UUID targetUserId, RemoveMemberRequest request) {
         GroupAccess currentAccess = groupAccessRepository.findByGroupIdAndUser(groupId, currentUser)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to group"));
 
@@ -181,7 +185,39 @@ public class GroupService {
             }
         }
 
+        // Delete the access of the target user
         groupAccessRepository.delete(targetAccess);
+
+        // Update the keys of the remaining members
+        if (request != null && request.newGroupKeys() != null) {
+            for (Map.Entry<UUID, String> entry : request.newGroupKeys().entrySet()) {
+                UUID userId = entry.getKey();
+                String newKey = entry.getValue();
+
+                GroupAccess access = groupAccessRepository.findByGroupIdAndUserId(groupId, userId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member " + userId + " not found in the group"));
+                access.setEncryptedGroupKey(newKey);
+                groupAccessRepository.save(access);
+            }
+        }
+
+        // Update the re-encrypted group items
+        if (request != null && request.reencryptedItems() != null) {
+            for (ReencryptedItemRequest itemReq : request.reencryptedItems()) {
+                fr.valentinthuillier.safevault.models.VaultItem item = vaultItemRepository.findById(itemReq.id())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vault item not found"));
+                if (item.getGroup() == null || !item.getGroup().getId().equals(groupId)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Item does not belong to the group");
+                }
+                item.setEncryptedName(itemReq.encryptedName());
+                item.setEncryptedUsername(itemReq.encryptedUsername());
+                item.setEncryptedPassword(itemReq.encryptedPassword());
+                item.setEncryptedUrl(itemReq.encryptedUrl());
+                item.setEncryptedNotes(itemReq.encryptedNotes());
+                item.setNonce(itemReq.nonce());
+                vaultItemRepository.save(item);
+            }
+        }
     }
 
 }

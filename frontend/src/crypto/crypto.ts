@@ -202,7 +202,7 @@ export async function importAesKey(base64Key: string): Promise<CryptoKey> {
             name: "AES-GCM",
             length: 256
         },
-        false,
+        true,
         ["encrypt", "decrypt"]
     );
 }

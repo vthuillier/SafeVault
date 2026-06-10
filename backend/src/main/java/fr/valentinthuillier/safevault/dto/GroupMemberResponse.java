@@ -7,5 +7,6 @@ public record GroupMemberResponse(
     UUID userId,
     String email,
     GroupRole role,
-    String encryptedGroupKey
+    String encryptedGroupKey,
+    String publicKey
 ) {}
